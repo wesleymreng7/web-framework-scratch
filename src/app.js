@@ -31,6 +31,22 @@ const App = () => {
         routes.set(`${path}/DELETE`, [...currentHandlers, ...handlers])
     }
 
+    const dispatchChain = (request, response, middlewares) => {
+        return invokeMiddlewares(request, response, middlewares)
+    }
+
+    const invokeMiddlewares = async (request, response, middlewares) => {
+
+        if (!middlewares.length) return;
+
+        const currentMiddleware = middlewares[0];
+
+        return currentMiddleware(request, response, async () => {
+            await invokeMiddlewares(request, response, middlewares.slice(1));
+        })
+    }
+
+
     const sanitizeUrl = (url, method) => {
         const urlParams = url.split('/').slice(1)
 
@@ -68,9 +84,7 @@ const App = () => {
 
         if (match) {
             const middlewaresAndControllers = routes.get(match)
-            console.log(middlewaresAndControllers)
-            response.statusCode = 200
-            response.end('Found')
+            await dispatchChain(request, response, [...middlewaresAndControllers])
         } else {
             response.statusCode = 404
             response.end('Not found')

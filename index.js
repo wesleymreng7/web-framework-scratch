@@ -10,6 +10,24 @@ app.put('/test', (req, res) => console.log('test'))
 app.del('/test', (req, res) => console.log('test'))
 
 
+const mid1 = (req, res, next) => {
+    console.log('mid1')
+    next()
+}
+
+const mid2 = (req, res, next) => {
+    console.log('mid2')
+    next()
+}
+
+const controller = (req, res) => {
+    console.log('controller')
+    res.end('controller')
+}
+
+app.get('/middleware', mid1, mid2, controller)
+
+
 
 const start = async () => {
     app.run(3000)
