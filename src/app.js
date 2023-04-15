@@ -1,5 +1,7 @@
 const { createServer } = require('http')
 const { match } = require('path-to-regexp')
+const requestDecorator = require('./request')
+const responseDecorator = require('./response')
 
 const App = () => {
     const routes = new Map()
@@ -84,7 +86,8 @@ const App = () => {
 
         if (match) {
             const middlewaresAndControllers = routes.get(match)
-            await dispatchChain(request, response, [...middlewaresAndControllers])
+            await dispatchChain(request, response,
+                [requestDecorator.bind(null, routes.keys()), responseDecorator, ...middlewaresAndControllers])
         } else {
             response.statusCode = 404
             response.end('Not found')
