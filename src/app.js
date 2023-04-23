@@ -6,7 +6,31 @@ const responseDecorator = require('./response')
 const App = () => {
     const routes = new Map()
     const createMyServer = () => createServer(serverHandler.bind(this))
+    const middlewaresForAll = []
 
+    const use = (path, ...middlewares) => {
+        const possiblePaths = [path + '/GET', path + '/POST', path + '/PUT', path + '/PATCH', path + '/DELETE']
+        possiblePaths.forEach(route => {
+            const middlewaresAndControllers = routes.get(route) || []
+
+            if (middlewaresAndControllers.length) {
+                routes.set(route, [...middlewares, ...middlewaresAndControllers])
+            }
+        })
+    }
+
+    const useAll = (...middlewares) => {
+        middlewaresForAll.push(...middlewares)
+    }
+
+    const useRouter = (path, router) => {
+        const routerRoutes = router.getRoutes()
+        const middlewaresFromRouter = router.getMiddlewaresForAll()
+        const existentHandlers = routes.get(path) || []
+        routerRoutes.forEach((middlewares, key) => {
+            routes.set(`${path + key}`, [...existentHandlers, ...middlewaresFromRouter, ...middlewares])
+        })
+    }
 
     const get = (path, ...handlers) => {
         const currentHandlers = routes.get(`${path}/GET`) || []
@@ -87,7 +111,7 @@ const App = () => {
         if (match) {
             const middlewaresAndControllers = routes.get(match)
             await dispatchChain(request, response,
-                [requestDecorator.bind(null, routes.keys()), responseDecorator, ...middlewaresAndControllers])
+                [requestDecorator.bind(null, routes.keys()), responseDecorator, ...middlewaresForAll, ...middlewaresAndControllers])
         } else {
             response.statusCode = 404
             response.end('Not found')
@@ -106,7 +130,10 @@ const App = () => {
         post,
         patch,
         put,
-        del
+        del,
+        use,
+        useAll,
+        useRouter
     }
 }
 
