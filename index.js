@@ -74,6 +74,9 @@ app.useAll((req, res, next) => {
     next()
 })
 
+
+app.static('./files')
+
 const start = async () => {
     app.run(3000)
 }

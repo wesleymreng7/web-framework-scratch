@@ -2,11 +2,43 @@ const { createServer } = require('http')
 const { match } = require('path-to-regexp')
 const requestDecorator = require('./request')
 const responseDecorator = require('./response')
+const { readdir } = require('fs/promises')
+const { statSync, createReadStream } = require('fs')
+const path = require('path')
+const { pipeline } = require('stream/promises')
 
 const App = () => {
     const routes = new Map()
     const createMyServer = () => createServer(serverHandler.bind(this))
     const middlewaresForAll = []
+
+
+    async function* getAllStaticFiles(folder) {
+
+        const files = await readdir(folder)
+        for (const file of files) {
+            const absolutePath = path.join(folder, file)
+            if (statSync(absolutePath).isDirectory()) {
+                yield* getAllStaticFiles(absolutePath)
+            }
+            else {
+                yield absolutePath
+            }
+        }
+    }
+
+    const static = async (folderPath) => {
+        let folderRelative = folderPath.replace('./', '')
+        for await (const file of getAllStaticFiles(folderPath)) {
+            const pathWithoutBase = file.replace(folderRelative, '')
+            get(pathWithoutBase, async (req, res) => {
+                const relativePath = path.join(__dirname, '..', file)
+                const fileStream = createReadStream(relativePath)
+                res.setHeader('Content-Type', file.split('.').filter(Boolean).slice(1).join('.'))
+                return await pipeline(fileStream, res)
+            })
+        }
+    }
 
     const use = (path, ...middlewares) => {
         const possiblePaths = [path + '/GET', path + '/POST', path + '/PUT', path + '/PATCH', path + '/DELETE']
@@ -133,7 +165,8 @@ const App = () => {
         del,
         use,
         useAll,
-        useRouter
+        useRouter,
+        static
     }
 }
 
