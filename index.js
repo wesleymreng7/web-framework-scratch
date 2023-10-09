@@ -1,4 +1,5 @@
 const App = require('./src/app')
+const BodyParser = require('./src/body-parser')
 const Router = require('./src/router')
 
 const app = App()
@@ -26,6 +27,8 @@ const controller = (req, res) => {
     console.log('controller')
     res.end('controller')
 }
+
+app.useAll(BodyParser)
 
 app.get('/middleware', mid1, mid2, controller)
 
@@ -76,6 +79,10 @@ app.useAll((req, res, next) => {
 
 
 app.static('./files')
+
+app.post('/body-parser', (req, res) => {
+    res.send(`name: ${req.body.name}, age: ${req.body.age}`)
+})
 
 const start = async () => {
     app.run(3000)
